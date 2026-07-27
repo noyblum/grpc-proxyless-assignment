@@ -2,6 +2,10 @@ resource "google_container_cluster" "mesh" {
   name     = var.cluster_name
   location = var.region
 
+  # Pin node zones explicitly: without this a regional cluster spreads nodes
+  # across all zones in the region, including ones with GCE_STOCKOUT.
+  node_locations = var.zones
+
   network    = google_compute_network.mesh.id
   subnetwork = google_compute_subnetwork.mesh.id
 
