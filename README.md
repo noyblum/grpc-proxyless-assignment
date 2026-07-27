@@ -33,7 +33,7 @@ directly from Cloud Service Mesh's managed control plane, and balances
 hop, no DNS, no proxy fleet to operate.
 
 The full analysis (root cause, comparison of Linkerd/Envoy/Istio/managed
-meshes, and why this architecture wins on GCP) is in **[WRITEUP.md](WRITEUP.md)**.
+meshes, and why this architecture wins on GCP) is in **[Part1.md](Part1.md)**.
 
 ## Architecture
 
@@ -125,7 +125,7 @@ before/after code — is documented in [docs/troubleshooting.md](docs/troublesho
 ## Repository layout
 
 ```
-WRITEUP.md              # Part 1 — analysis, comparison, recommendation, references
+Part1.md              # Part 1 — analysis, comparison, recommendation, references
 assets/                 # architecture + xDS diagrams
 docs/                   # deployment runbook, architecture, troubleshooting, evidence
 grpc-mesh-infra/
@@ -138,7 +138,7 @@ grpc-mesh-infra/
 
 | Deliverable | Location |
 |---|---|
-| Task 1 & 2 — analysis, comparison, references | [WRITEUP.md](WRITEUP.md) |
+| Task 1 & 2 — analysis, comparison, references | [Part1.md](Part1.md) |
 | Task 3 — IaC (Terraform) | [grpc-mesh-infra/terraform/](grpc-mesh-infra/terraform/) |
 | Task 4 — `server.go` | [grpc-hello-app · cmd/server/server.go](https://github.com/noyblum/grpc-hello-app/blob/main/cmd/server/server.go) |
 | Task 5 — `client.go` | [grpc-hello-app · cmd/client/client.go](https://github.com/noyblum/grpc-hello-app/blob/main/cmd/client/client.go) |
