@@ -15,7 +15,8 @@ deployed with Terraform + Argo CD.
 | Task 5 — `client.go` (xds:/// target, SayHello) | [grpc-hello-app/cmd/client/client.go](grpc-hello-app/cmd/client/client.go) |
 | Dockerfile | [grpc-hello-app/Dockerfile](grpc-hello-app/Dockerfile) |
 | Task 6 — ArgoCD GitOps deployment | [grpc-mesh-infra/argocd/](grpc-mesh-infra/argocd/) + [grpc-mesh-infra/k8s/](grpc-mesh-infra/k8s/) |
-| Evidence — screenshots | `evidence/` (see checklist in [grpc-mesh-infra/README.md](grpc-mesh-infra/README.md)) |
+| Evidence — screenshots | [docs/evidence.md](docs/evidence.md) |
+| Docs — runbook, architecture, troubleshooting | [docs/](docs/) |
 
 The two top-level directories are intended to be published as **two separate
 Git repositories** (application repo and GitOps/IaC repo), matching the

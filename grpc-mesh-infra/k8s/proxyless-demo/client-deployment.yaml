@@ -27,7 +27,7 @@ spec:
       containers:
         - name: client
           # Same image as the server; the entrypoint is overridden.
-          image: us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.0
+          image: us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.1
           command: ["/client"]
           args:
             - "--target=xds:///helloworld-gke"

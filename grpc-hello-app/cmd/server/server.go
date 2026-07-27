@@ -1,11 +1,14 @@
-// Command server is a proxyless-gRPC Greeter server.
+// Command server is the Greeter server of a proxyless Cloud Service Mesh
+// deployment.
 //
-// It uses xds.NewGRPCServer so the gRPC library itself acts as an xDS client:
-// it reads the bootstrap file pointed to by GRPC_XDS_BOOTSTRAP (generated on
-// GKE by the td-grpc-bootstrap init container) and receives its configuration
-// from Cloud Service Mesh. It also serves the standard gRPC health-checking
-// protocol, which Cloud Service Mesh's gRPC health checks probe on the
-// serving port.
+// In proxyless CSM, xDS drives the *client* side: clients resolve
+// xds:///<hostname> through the control plane and load-balance per-RPC across
+// this server's pod IPs (registered in a NEG). The server itself serves plain
+// gRPC plus the standard health-checking protocol, which the mesh's gRPC
+// health check probes on the serving port. (xds.NewGRPCServer is only needed
+// when server-side security policies are configured — without them the
+// control plane sends no server Listener resource and an xDS-enabled server
+// would stay NOT_SERVING.)
 package main
 
 import (
@@ -17,11 +20,8 @@ import (
 	"os"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	xdscreds "google.golang.org/grpc/credentials/xds"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/xds"
 
 	pb "github.com/noyblumenfeld/grpc-hello-app/gen/helloworld"
 )
@@ -49,20 +49,7 @@ func main() {
 		hostname = "unknown"
 	}
 
-	// xDS server credentials: use mesh-provided (mTLS) security if Cloud
-	// Service Mesh sends it, otherwise fall back to plaintext.
-	creds, err := xdscreds.NewServerCredentials(xdscreds.ServerOptions{
-		FallbackCreds: insecure.NewCredentials(),
-	})
-	if err != nil {
-		log.Fatalf("failed to create xDS server credentials: %v", err)
-	}
-
-	server, err := xds.NewGRPCServer(grpc.Creds(creds))
-	if err != nil {
-		log.Fatalf("failed to create xDS-enabled gRPC server: %v", err)
-	}
-
+	server := grpc.NewServer()
 	pb.RegisterGreeterServer(server, &greeter{hostname: hostname})
 
 	// gRPC health-checking protocol, probed by the Cloud Service Mesh

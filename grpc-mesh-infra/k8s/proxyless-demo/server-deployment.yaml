@@ -32,7 +32,7 @@ spec:
           # Replace with your Artifact Registry path (Terraform output
           # artifact_registry), e.g.
           # us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.0
-          image: us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.0
+          image: us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.1
           command: ["/server"]
           args: ["--port=50051"]
           ports:
