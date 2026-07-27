@@ -1,7 +1,13 @@
 # Multi-stage build: generates the protobuf stubs, compiles both binaries
 # statically, and ships them in a distroless image. The same image serves as
 # server (default entrypoint) and client (override command with /client).
-FROM golang:1.23-alpine AS build
+#
+# The build stage runs on the host's native platform (BUILDPLATFORM) and
+# cross-compiles to the target: running protoc/go under QEMU emulation on
+# Apple Silicon is slow and crashes the Go toolchain.
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS build
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN apk add --no-cache protobuf protobuf-dev
 
@@ -19,8 +25,8 @@ RUN protoc \
       proto/helloworld.proto
 
 RUN go mod tidy && \
-    CGO_ENABLED=0 go build -trimpath -o /out/server ./cmd/server && \
-    CGO_ENABLED=0 go build -trimpath -o /out/client ./cmd/client
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -o /out/server ./cmd/server && \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -trimpath -o /out/client ./cmd/client
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/server /server
