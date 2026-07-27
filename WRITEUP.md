@@ -108,6 +108,31 @@ it as a sidecar (Istio), as a per-node/ambient deployment, or as a middle proxy.
 * **Istio-as-a-service** (e.g., GKE's managed CSM in-cluster control plane, or third-party
   offerings like Solo/Tetrate): managed lifecycle for Istio, still sidecar-centric by default.
 
+### Option E: other approaches discovered during research
+
+* **Kubernetes-API-based client resolvers** (e.g.,
+  [kuberesolver](https://github.com/sercand/kuberesolver)): a grpc-go resolver
+  that watches the Kubernetes Endpoints/EndpointSlice API instead of DNS, so
+  clients learn about pod churn in real time and `round_robin` balances across
+  live pods. A meaningful upgrade over `dns:///` with none of DNS's staleness —
+  but still per-language, still policy-free, and it grants every client watch
+  access to the Kubernetes API.
+* **Cilium / eBPF** ([docs](https://docs.cilium.io/en/stable/network/servicemesh/)): replaces
+  kube-proxy with eBPF socket-level load balancing. Excellent for connection-level
+  balancing and latency, but eBPF alone cannot split HTTP/2 *streams* — request-level
+  gRPC balancing still requires its embedded per-node Envoy, so it doesn't
+  escape the proxy layer for this problem.
+* **Istio ambient mode** ([docs](https://istio.io/latest/docs/ambient/overview/)):
+  removes *sidecars* (per-node ztunnel at L4 + shared waypoint proxies at L7).
+  A big operational improvement over classic Istio, but gRPC request-level
+  balancing still traverses a waypoint proxy — "sidecar-less", not "proxyless".
+
+These sharpen the conclusion: everything short of xDS-in-the-client either
+leaves request-level balancing unsolved (DNS/kube-proxy/eBPF alone, resolver
+libraries without policy) or reintroduces a proxy hop somewhere (Linkerd,
+Envoy, ambient). Proxyless gRPC is the only design where the balancing
+decision happens inside the application with full mesh policy behind it.
+
 ### Best fit for a GCP environment — and why
 
 **Recommendation: Google Cloud Service Mesh with proxyless gRPC (xDS) for the Golang gRPC
