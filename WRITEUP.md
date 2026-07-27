@@ -41,6 +41,47 @@ HPA scaling that didn't relieve the hot replica — and their initial fix was th
 *mitigates* but does not solve: it converts "permanently pinned" into "re-pinned every N
 minutes," still connection-level rather than request-level balancing.
 
+### DNS is also the wrong *discovery channel* — not just badly used
+
+The connection-pinning story above is only half the problem. Spotify — who ran
+DNS-based discovery at enormous scale before moving to a proxyless gRPC mesh
+([talk](https://www.youtube.com/watch?v=2_ECK6v_yXc)) — call out three
+structural limitations of DNS itself:
+
+1. **Response size limits.** A DNS response has hard size ceilings (512 bytes
+   over classic UDP, ~4 KB with EDNS0, 64 KB even over TCP fallback). A service
+   with hundreds of endpoints simply cannot fit them in one answer — responses
+   get truncated and clients see (and balance over) a partial, arbitrary subset
+   of the fleet. Discovery stops being complete exactly when the service is
+   large enough for balancing to matter most.
+2. **Caching & cache evictions.** Between a gRPC client and the authoritative
+   record sit multiple independent caches (glibc/musl resolver, node-local DNS,
+   CoreDNS, upstream resolvers), each honoring TTLs slightly differently.
+   Updates propagate late and unevenly — some clients see a new pod set,
+   others don't — and synchronized cache expiry produces thundering-herd
+   re-resolution spikes. Tuning TTL is a lose-lose: low TTL hammers DNS
+   infrastructure, high TTL means minutes of stale endpoints.
+3. **One-way communication.** DNS is strictly pull-based: the server can never
+   *tell* clients "this pod just died" or "two new pods joined." Freshness is
+   bounded by whatever polling interval clients dare to use. Contrast xDS: a
+   long-lived bidirectional gRPC stream (ADS) where the control plane *pushes*
+   endpoint updates the moment they happen.
+
+In fairness — and Spotify makes this point too — DNS is robust, battle-tested,
+and operationally simple; it carried them a very long way. The argument is not
+that DNS is broken, but that it caps what load balancing can ever achieve at
+scale.
+
+| Aspect | DNS-based discovery | gRPC xDS |
+|---|---|---|
+| Communication model | Pull — client polls, bounded by TTL | Bidirectional stream — control plane pushes updates instantly |
+| Payload | Bare IP addresses (A/AAAA) | Typed config: listeners, routes, clusters, endpoints (LDS/RDS/CDS/EDS) |
+| Response size | Hard limits (512 B UDP / ~4 KB EDNS0); truncation at scale | Streamed; complete endpoint sets regardless of fleet size |
+| Freshness on scale/failure events | Stale until TTL expiry across every cache layer | Sub-second push on endpoint change |
+| Health awareness | None — a dead pod's record is served until it ages out | Health-checked endpoints; unhealthy ones withdrawn centrally |
+| Load-balancing signal | Address list only; policy left entirely to the client | Endpoints + weights + locality + LB policy delivered as config |
+| Extra policy (retries, splits, mTLS) | None | Part of the same config channel |
+
 ### Why HTTP/1.1 doesn't suffer from this
 
 HTTP/1.1 has **no multiplexing**: one in-flight request per connection. Clients therefore hold
@@ -54,6 +95,21 @@ once-per-process event, so a per-connection balancer only ever makes one decisio
 ---
 
 ## Task 2 — Solutions comparison and recommendation
+
+### At a glance
+
+| Solution | LB granularity | Where LB runs | App changes | Ops burden | Policy (mTLS, retries, splits) | Verdict for gRPC on GCP |
+|---|---|---|---|---|---|---|
+| **Go client-side** (`dns:///` + `round_robin` + keepalives) | Per-connection-set; approximate | In-process | Yes, per service & language | None | None — DIY | Fine for small fleets; doesn't scale organizationally |
+| **kuberesolver** (K8s-API resolver) | Per-RPC across live pods | In-process | Yes (Go-only) | Low | None | Better than DNS, still policy-free |
+| **Linkerd** | Per-request (EWMA) | Sidecar proxy | None | Medium — self-run control plane + proxy fleet | Yes | Best DX, but sidecars + self-operated |
+| **Envoy / Istio (sidecar)** | Per-request | Sidecar proxy | None | High — control plane + sidecar lifecycle | Yes, richest | Maximum power, maximum toil |
+| **Istio ambient** | Per-request | Node ztunnel + waypoint proxy | None | Medium | Yes | Sidecar-less, not proxyless — L7 still crosses a proxy |
+| **Cilium / eBPF** | Per-connection (L4) | Kernel (+ embedded Envoy for L7) | None | Medium | Partial | eBPF alone can't split HTTP/2 streams |
+| **Cloud Service Mesh, proxyless (chosen)** | **Per-RPC** | **In-process via xDS** | Small, one-time (xds target + bootstrap) | **Low — Google-managed control plane** | Yes | Purpose-built for this problem on GCP |
+
+(A broader managed-mesh comparison of Istio vs Consul vs Linkerd vs Envoy is
+in [this overview article](https://medium.com/@prayag-sangode/service-mesh-explained-istio-vs-consul-vs-linkerd-vs-envoy-d6cecc0671c6).)
 
 ### Option A: Golang client-side changes (no mesh)
 
@@ -166,6 +222,17 @@ Justification against the alternatives:
 
 ### Avoiding sidecar proxies — Golang-centric mechanics
 
+How xDS replaces the sidecar — the gRPC library inside the application is the
+xDS client, receiving its listener → route → cluster → endpoint configuration
+directly from the managed control plane:
+
+![Proxyless gRPC with Cloud Service Mesh — xDS architecture](assets/csm-proxyless-xds.svg)
+
+![Sidecar Envoy vs proxyless gRPC in the same mesh](assets/csm-sidecar-vs-proxyless.svg)
+
+*Diagrams: [Google Cloud Service Mesh documentation](https://cloud.google.com/service-mesh/docs/service-routing/proxyless-overview),
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+
 How a Go service participates in the mesh with no proxy at all:
 
 1. Import the xDS packages: `_ "google.golang.org/grpc/xds"` (client) /
@@ -182,6 +249,9 @@ How a Go service participates in the mesh with no proxy at all:
 
 ### References
 
+* [How We Moved Spotify To a Proxyless gRPC Service Mesh — Spotify (video)](https://www.youtube.com/watch?v=2_ECK6v_yXc)
+* [Service Mesh Explained: Istio vs Consul vs Linkerd vs Envoy — Prayag Sangode](https://medium.com/@prayag-sangode/service-mesh-explained-istio-vs-consul-vs-linkerd-vs-envoy-d6cecc0671c6)
+* [xDS REST and gRPC protocol — Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol)
 * [gRPC Load Balancing on Kubernetes without Tears — Kubernetes blog](https://kubernetes.io/blog/2018/11/07/grpc-load-balancing-on-kubernetes-without-tears/)
 * [Load balancing and scaling long-lived connections in Kubernetes — LearnKube](https://learnkube.com/kubernetes-long-lived-connections)
 * [How three lines of configuration solved our gRPC scaling issues in Kubernetes — Jamf Engineering](https://medium.com/jamf-engineering/how-three-lines-of-configuration-solved-our-grpc-scaling-issues-in-kubernetes-ca1ff13f7f06)
