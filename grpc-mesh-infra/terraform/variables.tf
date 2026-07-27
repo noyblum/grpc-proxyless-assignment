@@ -12,7 +12,7 @@ variable "region" {
 variable "zones" {
   description = "Zones for GKE nodes; also the zones where the server NEGs are created."
   type        = list(string)
-  default     = ["us-central1-a", "us-central1-c"]
+  default     = ["us-central1-a"]
 }
 
 variable "cluster_name" {
