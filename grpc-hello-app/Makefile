@@ -22,7 +22,7 @@ build: proto ## Build server and client binaries locally
 # Image ------------------------------------------------------------------------
 .PHONY: docker-build
 docker-build: ## Build the container image (proto generation happens in-image)
-	docker build -t $(IMAGE):$(TAG) .
+	docker build --platform linux/amd64 -t $(IMAGE):$(TAG) .
 
 .PHONY: docker-push
 docker-push: docker-build ## Push to Artifact Registry
