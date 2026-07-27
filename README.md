@@ -21,6 +21,10 @@ The two top-level directories are intended to be published as **two separate
 Git repositories** (application repo and GitOps/IaC repo), matching the
 assignment's repository requirements.
 
+## Architecture
+
+![Architecture diagram](assets/architecture.svg)
+
 ## TL;DR of the design
 
 * **Problem:** gRPC = HTTP/2 = one long-lived multiplexed connection; DNS is
