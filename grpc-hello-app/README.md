@@ -3,6 +3,10 @@
 Golang gRPC Greeter service and client for a **proxyless** Cloud Service Mesh
 deployment (no sidecars — the grpc-go library itself is the xDS client).
 
+Companion GitOps/IaC repository (Terraform, Kubernetes manifests, Argo CD,
+write-up and docs):
+**[noyblum/grpc-proxyless-assignment](https://github.com/noyblum/grpc-proxyless-assignment)**
+
 ## Layout
 
 ```

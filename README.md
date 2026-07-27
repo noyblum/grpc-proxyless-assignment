@@ -11,16 +11,19 @@ deployed with Terraform + Argo CD.
 | Task 1 — gRPC/HTTP2/DNS load-balancing analysis | [WRITEUP.md](WRITEUP.md) |
 | Task 2 — solutions comparison, GCP best-fit, proxyless (Go), references | [WRITEUP.md](WRITEUP.md) |
 | Task 3 — IaC for the GCP environment (Terraform) | [grpc-mesh-infra/terraform/](grpc-mesh-infra/terraform/) |
-| Task 4 — `server.go` (SayHello, xDS, :50051) | [grpc-hello-app/cmd/server/server.go](grpc-hello-app/cmd/server/server.go) |
-| Task 5 — `client.go` (xds:/// target, SayHello) | [grpc-hello-app/cmd/client/client.go](grpc-hello-app/cmd/client/client.go) |
-| Dockerfile | [grpc-hello-app/Dockerfile](grpc-hello-app/Dockerfile) |
+| Task 4 — `server.go` (SayHello, xDS, :50051) | [grpc-hello-app · cmd/server/server.go](https://github.com/noyblum/grpc-hello-app/blob/main/cmd/server/server.go) |
+| Task 5 — `client.go` (xds:/// target, SayHello) | [grpc-hello-app · cmd/client/client.go](https://github.com/noyblum/grpc-hello-app/blob/main/cmd/client/client.go) |
+| Dockerfile | [grpc-hello-app · Dockerfile](https://github.com/noyblum/grpc-hello-app/blob/main/Dockerfile) |
 | Task 6 — ArgoCD GitOps deployment | [grpc-mesh-infra/argocd/](grpc-mesh-infra/argocd/) + [grpc-mesh-infra/k8s/](grpc-mesh-infra/k8s/) |
 | Evidence — screenshots | [docs/evidence.md](docs/evidence.md) |
 | Docs — runbook, architecture, troubleshooting | [docs/](docs/) |
 
-The two top-level directories are intended to be published as **two separate
-Git repositories** (application repo and GitOps/IaC repo), matching the
-assignment's repository requirements.
+Per the assignment's repository requirements this project is split into two
+repositories:
+
+* **Application repo:** [noyblum/grpc-hello-app](https://github.com/noyblum/grpc-hello-app) — Go source, proto, Dockerfile.
+* **GitOps/IaC repo (this one):** Terraform, Kubernetes manifests, Argo CD
+  application, write-up and docs.
 
 ## Architecture
 

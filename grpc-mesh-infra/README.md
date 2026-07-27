@@ -37,8 +37,10 @@ cd terraform
 terraform init
 terraform apply -var project_id=<PROJECT_ID>
 
-# 2. Build & push the app image (from the grpc-hello-app repo)
-make -C ../../grpc-hello-app docker-push PROJECT_ID=<PROJECT_ID>
+# 2. Build & push the app image (from the application repo:
+#    https://github.com/noyblum/grpc-hello-app)
+git clone https://github.com/noyblum/grpc-hello-app.git /tmp/grpc-hello-app
+make -C /tmp/grpc-hello-app docker-push PROJECT_ID=<PROJECT_ID>
 
 # 3. Point kubectl at the cluster
 $(terraform output -raw get_credentials)

@@ -19,7 +19,11 @@ service + gRPC health check, and Argo CD (Helm).
 
 ## 2. Build & push the app image
 
+From the application repository
+([noyblum/grpc-hello-app](https://github.com/noyblum/grpc-hello-app)):
+
 ```bash
+git clone https://github.com/noyblum/grpc-hello-app.git
 make -C grpc-hello-app docker-push PROJECT_ID=<PROJECT_ID> TAG=v0.1.1
 ```
 
