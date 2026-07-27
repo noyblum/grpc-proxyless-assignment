@@ -1,4 +1,4 @@
-# grpc-mesh-infra — GitOps / IaC Repository
+# grpc-mesh-infra - GitOps / IaC Repository
 
 Terraform for the GCP environment (GKE + Cloud Service Mesh proxyless gRPC +
 Argo CD) and the Kubernetes manifests that Argo CD delivers.
@@ -48,12 +48,12 @@ $(terraform output -raw get_credentials)
 # 4. Replace placeholders in the manifests, commit & push this repo:
 #    - PROJECT_ID in k8s/proxyless-demo/serviceaccount.yaml and both Deployments
 #    - repoURL in argocd/root-app.yaml
-# then hand the app to Argo CD (the only manual kubectl apply — Application
+# then hand the app to Argo CD (the only manual kubectl apply - Application
 # CRDs can't be terraform-planned before Argo CD's CRDs exist):
 kubectl apply -f ../argocd/root-app.yaml
 
 # 5. Once the server pods are Ready, GKE has created the named NEGs
-#    (helloworld-grpc-neg) in each zone — attach them to the backend service:
+#    (helloworld-grpc-neg) in each zone - attach them to the backend service:
 terraform apply -var project_id=<PROJECT_ID> -var attach_neg_backends=true
 ```
 
@@ -67,8 +67,8 @@ kubectl -n argocd port-forward svc/argocd-server 8080:80
 
 ## Verification (screenshot checklist)
 
-1. **Argo CD UI** — `proxyless-demo` application `Synced` / `Healthy`.
-2. **Client logs prove per-RPC load balancing** — replies alternate between the
+1. **Argo CD UI** - `proxyless-demo` application `Synced` / `Healthy`.
+2. **Client logs prove per-RPC load balancing** - replies alternate between the
    three server pod hostnames:
    ```bash
    kubectl -n proxyless logs deploy/helloworld-client -f
@@ -76,7 +76,7 @@ kubectl -n argocd port-forward svc/argocd-server 8080:80
    # reply: Hello helloworld-client-..., from helloworld-server-def
    # reply: Hello helloworld-client-..., from helloworld-server-ghi
    ```
-3. **Backend health** — Console → Network Services → Traffic Director /
+3. **Backend health** - Console → Network Services → Traffic Director /
    Cloud Service Mesh: mesh `grpc-mesh`, route `helloworld-grpc-route`, and
    ```bash
    gcloud compute backend-services get-health helloworld-grpc-service --global
@@ -86,7 +86,7 @@ kubectl -n argocd port-forward svc/argocd-server 8080:80
    ```bash
    kubectl -n proxyless scale deploy/helloworld-server --replicas=5
    ```
-   New pod hostnames appear in the client logs within seconds — no
+   New pod hostnames appear in the client logs within seconds - no
    reconnects, no DNS, no sidecars.
 
 ## Notes & decisions
@@ -95,7 +95,7 @@ kubectl -n argocd port-forward svc/argocd-server 8080:80
   CD syncs the Service; Terraform can only data-source them afterwards. In a
   production setup I'd break the mesh layer into its own root module (or use
   the `gke-autoneg-controller`) to remove the two-phase apply.
-* The backend service uses `INTERNAL_SELF_MANAGED` + `GRPC` — mandatory for
+* The backend service uses `INTERNAL_SELF_MANAGED` + `GRPC` - mandatory for
   Cloud Service Mesh.
 * Argo CD is installed by Terraform (helm_release) as bootstrap; everything
   application-shaped is Git-driven from `k8s/` with automated sync, prune and

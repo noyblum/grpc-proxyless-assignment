@@ -12,7 +12,7 @@ terraform apply -var project_id=<PROJECT_ID>
 ```
 
 Creates: APIs, VPC + firewall (health-check ranges → tcp:50051), VPC-native GKE
-with Workload Identity (node zones pinned via `zones` — see
+with Workload Identity (node zones pinned via `zones` - see
 [troubleshooting §1](troubleshooting.md)), IAM (`roles/trafficdirector.client`
 via Workload Identity), Artifact Registry, `Mesh` + `GRPCRoute` + backend
 service + gRPC health check, and Argo CD (Helm).
