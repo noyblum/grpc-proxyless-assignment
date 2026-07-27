@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: helloworld
+  namespace: proxyless
+  annotations:
+    # Standalone, *named* NEG: GKE creates a zonal NEG called
+    # helloworld-grpc-neg holding the server pod IP:50051 endpoints.
+    # Terraform attaches these NEGs to the Cloud Service Mesh backend
+    # service (attach_neg_backends=true).
+    cloud.google.com/neg: '{"exposed_ports": {"50051": {"name": "helloworld-grpc-neg"}}}'
+spec:
+  # Headless: nothing ever resolves this Service for traffic — routing is
+  # done by Cloud Service Mesh straight to pod IPs. The Service exists only
+  # to produce the NEG.
+  clusterIP: None
+  selector:
+    app: helloworld-server
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051

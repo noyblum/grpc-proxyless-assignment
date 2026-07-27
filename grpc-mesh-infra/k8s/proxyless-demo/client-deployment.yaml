@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloworld-client
+  namespace: proxyless
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helloworld-client
+  template:
+    metadata:
+      labels:
+        app: helloworld-client
+    spec:
+      serviceAccountName: grpc-app-sa
+      initContainers:
+        - name: td-bootstrap
+          image: gcr.io/trafficdirector-prod/td-grpc-bootstrap:0.19.0
+          args:
+            - "--config-mesh=grpc-mesh"
+            - "--output=/tmp/bootstrap/td-grpc-bootstrap.json"
+            - "--node-metadata=app=helloworld-client"
+          volumeMounts:
+            - name: grpc-td-conf
+              mountPath: /tmp/bootstrap
+      containers:
+        - name: client
+          # Same image as the server; the entrypoint is overridden.
+          image: us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.0
+          command: ["/client"]
+          args:
+            - "--target=xds:///helloworld-gke"
+            - "--interval=2s"
+          env:
+            - name: GRPC_XDS_BOOTSTRAP
+              value: /tmp/bootstrap/td-grpc-bootstrap.json
+            # Uncomment for verbose xDS debugging:
+            # - name: GRPC_GO_LOG_SEVERITY_LEVEL
+            #   value: info
+            # - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+            #   value: "2"
+          volumeMounts:
+            - name: grpc-td-conf
+              mountPath: /tmp/bootstrap
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      volumes:
+        - name: grpc-td-conf
+          emptyDir: {}

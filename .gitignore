@@ -1,0 +1,14 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+# Go build artifacts (generated in-image by the Dockerfile)
+grpc-hello-app/bin/
+grpc-hello-app/gen/
+grpc-hello-app/go.sum
+
+# OS / editor
+.DS_Store

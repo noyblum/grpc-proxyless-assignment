@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloworld-server
+  namespace: proxyless
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: helloworld-server
+  template:
+    metadata:
+      labels:
+        app: helloworld-server
+    spec:
+      serviceAccountName: grpc-app-sa
+      initContainers:
+        # Generates the xDS bootstrap file the grpc-go library reads via
+        # GRPC_XDS_BOOTSTRAP: control-plane address, node metadata, and the
+        # mesh scope (--config-mesh must match the Terraform mesh name).
+        - name: td-bootstrap
+          image: gcr.io/trafficdirector-prod/td-grpc-bootstrap:0.19.0
+          args:
+            - "--config-mesh=grpc-mesh"
+            - "--output=/tmp/bootstrap/td-grpc-bootstrap.json"
+            - "--node-metadata=app=helloworld-server"
+          volumeMounts:
+            - name: grpc-td-conf
+              mountPath: /tmp/bootstrap
+      containers:
+        - name: server
+          # Replace with your Artifact Registry path (Terraform output
+          # artifact_registry), e.g.
+          # us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.0
+          image: us-central1-docker.pkg.dev/proxyless-grpc-mesh/grpc-demo/grpc-hello:v0.1.0
+          command: ["/server"]
+          args: ["--port=50051"]
+          ports:
+            - containerPort: 50051
+          env:
+            - name: GRPC_XDS_BOOTSTRAP
+              value: /tmp/bootstrap/td-grpc-bootstrap.json
+          volumeMounts:
+            - name: grpc-td-conf
+              mountPath: /tmp/bootstrap
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: grpc-td-conf
+          emptyDir: {}

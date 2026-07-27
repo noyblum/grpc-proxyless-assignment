@@ -1,0 +1,25 @@
+# Argo CD Application delivering everything under k8s/proxyless-demo.
+# Apply once after Terraform installs Argo CD:
+# kubectl apply -f argocd/root-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: proxyless-demo
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/noyblum/grpc-proxyless-assignment.git
+    targetRevision: main
+    path: grpc-mesh-infra/k8s/proxyless-demo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: proxyless
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
